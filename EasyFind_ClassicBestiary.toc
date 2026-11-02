@@ -2,7 +2,7 @@
 ## Title: EasyFind [Classic Bestiary]
 ## Notes: Classic Bestiary's creature abilities on EasyFind's results: hover a creature's row to see what it casts. Requires Classic Bestiary.
 ## Author: justawower
-## Version: 0.1.0
+## Version: 1.0.0
 ## IconTexture: Interface\AddOns\EasyFind\textures\SpyglassMinimap
 ## Group: EasyFind
 ## Category: UI
