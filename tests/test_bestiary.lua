@@ -1,6 +1,6 @@
 -- Bestiary.lua against a stand-in Classic Bestiary and EasyFind API: what
--- registers, which rows the decorator takes, and the tooltip's lines.
--- Run: lua tests/test_bestiary.lua
+-- registers, which rows the decorator takes, the tooltip's lines, and the
+-- settings page's switches. Run: lua tests/test_bestiary.lua
 local ROOT = (arg and arg[0] or ""):match("^(.-)tests[/\\]") or "./"
 
 -- The Bestiary's API: creature 10 casts three spells, 20 nothing, 30 twelve.
@@ -31,9 +31,9 @@ end
 local printed = {}
 print = function(...) printed[#printed + 1] = table.concat({ ... }, " ") end
 
--- EasyFind's API: what the extension registers lands here.
+-- EasyFind's API and saved data: what the extension registers lands here.
 local registered = {}
-EasyFind = { API = {
+EasyFind = { db = {}, API = {
     VERSION = 1,
     RegisterExtension = function(def) registered.extension = def return true end,
     RegisterRowDecorator = function(def) registered.decorator = def return true end,
@@ -53,6 +53,23 @@ local function Tip()
     return tip
 end
 
+-- The settings kit: each control remembers its getter and setter.
+local function Kit()
+    local made = {}
+    local function Control(kind, get, set)
+        local c = { kind = kind, get = get, set = set }
+        function c:SetPoint() end
+        made[#made + 1] = c
+        return c
+    end
+    return {
+        made = made,
+        Title = function() return Control("title") end,
+        Checkbox = function(_, _, get, set) return Control("checkbox", get, set) end,
+        Choice = function(_, _, _, get, set) return Control("choice", get, set) end,
+    }
+end
+
 local failures = 0
 local function check(cond, what)
     if cond then io.write("  ok   ", what, "\n") else failures = failures + 1 io.write("  FAIL ", what, "\n") end
@@ -61,6 +78,7 @@ end
 local ns = LoadAddon()
 check(registered.extension and registered.extension.id == "classicbestiary", "the extension registers")
 check(registered.extension.icon:find("bestiary", 1, true) ~= nil, "with its own glyph")
+check(registered.extension.settings == ns.Settings, "its tile opens its settings page")
 check(registered.decorator and registered.decorator.tooltip == ns.Tooltip, "a tooltip decorator registers at login")
 check(ns.ready == true and #printed == 0, "ready, nothing printed")
 
@@ -84,6 +102,25 @@ check(tip.lines[#tip.lines] == "and 4 more", "the count of the rest")
 tip = Tip()
 ns.Tooltip({ npcID = 20 }, nil, tip)
 check(#tip.lines == 0, "nothing for a creature with no abilities")
+
+-- The settings page: a switch and the line count, read and written in EasyFind's saved data.
+local kit = Kit()
+ns.Settings({}, kit)
+local box, choice = kit.made[2], kit.made[3]
+check(box and box.kind == "checkbox" and choice and choice.kind == "choice", "a switch and a choice under the title")
+check(box.get() == true and choice.get() == 8, "on, eight lines, by default")
+box.set(false)
+check(ns.Applies({ npcID = 10 }) == false and EasyFind.db.classicBestiary.off == true, "switched off, no row is taken")
+box.set(true)
+check(ns.Applies({ npcID = 10 }) == true and EasyFind.db.classicBestiary.off == nil, "switched on again")
+choice.set(4)
+tip = Tip()
+ns.Tooltip({ npcID = 30 }, nil, tip)
+check(#tip.lines == 2 + 4 + 1 and tip.lines[#tip.lines] == "and 8 more", "four lines listed")
+choice.set(0)
+tip = Tip()
+ns.Tooltip({ npcID = 30 }, nil, tip)
+check(#tip.lines == 2 + 12, "all lines listed")
 
 io.write(failures == 0 and "== bestiary tests: all passed ==\n" or ("== bestiary tests: " .. failures .. " failed ==\n"))
 os.exit(failures == 0 and 0 or 1)

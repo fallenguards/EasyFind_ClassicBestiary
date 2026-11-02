@@ -10,5 +10,9 @@ L["EXT_DESC"] = "Classic Bestiary's creature abilities on EasyFind's results: ho
 
 L["TT_HEADER"] = "Abilities, from Classic Bestiary"
 L["TT_MORE_FMT"] = "and %d more"
+L["SETTINGS_HINT"] = "What a creature casts, under its row's tooltip."
+L["OPT_SHOW"] = "Abilities on creature rows"
+L["OPT_LINES"] = "Lines listed"
+L["OPT_LINES_ALL"] = "All"
 L["NOT_READY_EASYFIND"] = "EasyFind needs an update before Classic Bestiary's abilities can show on its rows."
 L["NOT_READY_BESTIARY"] = "Classic Bestiary is newer than this extension knows; update EasyFind [Classic Bestiary]."

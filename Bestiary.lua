@@ -17,13 +17,22 @@ local sformat = string.format
 local SpellName = C_Spell and C_Spell.GetSpellName
     or (GetSpellInfo and function(id) return (GetSpellInfo(id)) end)
 local SpellIcon = C_Spell and C_Spell.GetSpellTexture or GetSpellTexture
-local MAX_LINES = 8
+local DEFAULT_LINES = 8
 
 function ns.Print(text)
     print(sformat("|cff66ccff%s:|r %s", L["EXT_NAME"], text))
 end
 
 local function Bestiary() return _G.ClassicBestiary end
+
+-- The player's switches, in EasyFind's own saved data.
+local function Store()
+    local db = EasyFind.db
+    db.classicBestiary = db.classicBestiary or {}
+    return db.classicBestiary
+end
+local function Enabled() return Store().off ~= true end
+local function MaxLines() return Store().lines or DEFAULT_LINES end
 
 -- The creature a row stands for: an NPC on the map or a boss, by creature id.
 local function NpcOf(row)
@@ -33,6 +42,7 @@ end
 
 -- A row with a creature the Bestiary lists abilities for.
 local function Applies(row)
+    if not Enabled() then return false end
     local id = NpcOf(row)
     local CB = Bestiary()
     if not (id and CB and CB.IterateAbilities) then return false end
@@ -44,11 +54,12 @@ local function Tooltip(row, _, tooltip)
     local id = NpcOf(row)
     local CB = Bestiary()
     if not (id and CB and CB.IterateAbilities) then return end
+    local max = MaxLines()
     local shown, more = 0, 0
     for spellID in CB.IterateAbilities(id) do
         local name = SpellName and SpellName(spellID)
         if name and name ~= "" then
-            if shown >= MAX_LINES then
+            if max > 0 and shown >= max then
                 more = more + 1
             else
                 if shown == 0 then
@@ -65,12 +76,28 @@ local function Tooltip(row, _, tooltip)
 end
 ns.Applies, ns.Tooltip = Applies, Tooltip
 
+-- The Extensions tab's page: the switch and how many lines a tooltip lists.
+local LINE_CHOICES = { { label = "4", value = 4 }, { label = "8", value = 8 }, { label = "12", value = 12 },
+                       { label = L["OPT_LINES_ALL"], value = 0 } }
+local function Settings(page, kit)
+    local below = kit.Title(page, L["EXT_NAME"], L["SETTINGS_HINT"])
+    local box = kit.Checkbox(page, L["OPT_SHOW"], Enabled, function(on)
+        if on then Store().off = nil else Store().off = true end
+    end)
+    box:SetPoint("TOPLEFT", below, "BOTTOMLEFT", 0, -8)
+    local lines = kit.Choice(page, L["OPT_LINES"], LINE_CHOICES, MaxLines, function(v) Store().lines = v end,
+        nil, DEFAULT_LINES)
+    lines:SetPoint("TOPLEFT", box, "BOTTOMLEFT", 0, -8)
+end
+ns.Settings = Settings
+
 API.RegisterExtension({
     id = KEY,
     name = L["EXT_NAME"],
     description = L["EXT_DESC"],
     icon = ICON,
     keywords = { "bestiary", "abilities", "creature", "mob" },
+    settings = Settings,
 })
 
 local events = CreateFrame("Frame")
