@@ -1,0 +1,20 @@
+name: Feature Request
+description: Something you would like it to do
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This tracker is for **EasyFind: Classic Bestiary Extension** (folder `EasyFind_ClassicBestiary`), the EasyFind extension for Classic Bestiary.
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like?
+      description: What you want to see from Classic Bestiary in EasyFind, and on which rows.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why?
+      description: What you do today instead, and what this would save you.

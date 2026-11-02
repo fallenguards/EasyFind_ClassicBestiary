@@ -34,7 +34,7 @@ print = function(...) printed[#printed + 1] = table.concat({ ... }, " ") end
 -- EasyFind's API and saved data: what the extension registers lands here.
 local registered = {}
 EasyFind = { db = {}, API = {
-    VERSION = 1,
+    VERSION = 1, MINOR = 6,
     RegisterExtension = function(def) registered.extension = def return true end,
     RegisterRowDecorator = function(def) registered.decorator = def return true end,
 } }

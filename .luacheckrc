@@ -22,3 +22,4 @@ self = false
 
 -- The tests set up stand-in globals for Classic Bestiary and the game.
 files["tests"] = { std = "max", ignore = { "1" } }
+files["tools/tests"] = { std = "max", ignore = { "1" } }

@@ -1,6 +1,6 @@
 ## Interface: 11509, 16001
 ## Title: EasyFind [Classic Bestiary]
-## Notes: Classic Bestiary's creature abilities on EasyFind's results: hover an NPC or boss row. Requires Classic Bestiary.
+## Notes: Classic Bestiary's creature abilities on EasyFind's results: hover a creature's row to see what it casts. Requires Classic Bestiary.
 ## Author: justawower
 ## Version: 0.1.0
 ## IconTexture: Interface\AddOns\EasyFind\textures\SpyglassMinimap

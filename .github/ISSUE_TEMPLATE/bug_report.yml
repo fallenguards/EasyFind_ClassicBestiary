@@ -1,0 +1,39 @@
+name: Bug Report
+description: Something isn't working as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This tracker is for **EasyFind: Classic Bestiary Extension** (folder `EasyFind_ClassicBestiary`), the EasyFind extension for Classic Bestiary.
+  - type: textarea
+    id: report
+    attributes:
+      label: What happened?
+      description: What you saw and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to make it happen
+      description: What you searched for and which row you hovered.
+      placeholder: |
+        1. Type "Rot Hide Mystic" in EasyFind
+        2. Hover its row
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: EasyFind, Classic Bestiary and this extension, as the AddOns list shows them, and the game client (Classic Era, WoW Forever).
+      placeholder: EasyFind 4.2.0, Classic Bestiary 2.0.20261025, EasyFind [Classic Bestiary] 1.0.0, Classic Era
+    validations:
+      required: true
+  - type: textarea
+    id: errors
+    attributes:
+      label: Errors
+      description: Any Lua error text (BugSack or the game's error window). Paste it as is.

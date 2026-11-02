@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  luacheck:
+    name: Luacheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: nebularg/actions-luacheck@v1
+        with:
+          files: '.'
+          args: '--no-color -q'
+
+  smoke:
+    name: Smoke tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: leafo/gh-actions-lua@v10
+        with:
+          luaVersion: '5.4'
+      - name: Load the addon (EasyFind there, missing or too old; Classic Bestiary there, missing, too old or too new)
+        run: |
+          status=0
+          for mode in normal noapi oldapi nobestiary oldbestiary newbestiary; do
+            echo "== $mode"
+            lua tools/tests/smoke_test.lua . EasyFind_ClassicBestiary.toc EasyFind_ClassicBestiary "$mode" || status=1
+          done
+          exit $status
+
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: leafo/gh-actions-lua@v10
+        with:
+          luaVersion: '5.4'
+      - name: The decorator and settings page against a stand-in Classic Bestiary
+        run: lua tests/test_bestiary.lua

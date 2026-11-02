@@ -109,7 +109,8 @@ events:SetScript("OnEvent", function(self)
         ns.Print(L["NOT_READY_BESTIARY"])
         return
     end
-    if not API.RegisterRowDecorator then
+    -- Creature ids on rows and a bare row's tooltip came with API 1.6.
+    if not (API.RegisterRowDecorator and (API.MINOR or 0) >= 6) then
         ns.Print(L["NOT_READY_EASYFIND"])
         return
     end
