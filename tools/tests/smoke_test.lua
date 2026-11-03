@@ -48,6 +48,14 @@ _G.C_Spell = {
 }
 -- Loaded beside Classic Bestiary (OptionalDeps): the file returns at once without it.
 _G.C_AddOns = { IsAddOnLoaded = function(name) return name == "ClassicBestiary" and mode ~= "nobestiary" end }
+_G.C_Spell.GetSpellDescription = function(id) return "Text of " .. id end
+_G.C_Spell.IsSpellDataCached = function() return true end
+_G.C_Spell.DoesSpellExist = function() return true end
+local held = false
+_G.IsControlKeyDown = function() return held end
+_G.IsShiftKeyDown = function() return false end
+_G.IsAltKeyDown = function() return false end
+_G.ClassicBestiaryCfg = {}
 
 local printed = {}
 _G.print = function(...)
@@ -119,8 +127,8 @@ elseif mode == "oldbestiary" or mode == "newbestiary" then
 else
     Check(ext ~= nil and type(ext.name) == "string" and ext.icon ~= nil and type(ext.settings) == "function",
         "the extension, with its name, icon and settings page")
-    Check(decorator ~= nil and type(decorator.applies) == "function" and type(decorator.tooltip) == "function",
-        "its row decorator, with applies and tooltip")
+    Check(decorator ~= nil and type(decorator.applies) == "function" and type(decorator.tooltip) == "function"
+        and decorator.modifiers == true, "its row decorator, with applies and tooltip, drawn again by the keys")
     Check(#printed == 0, "nothing printed at login")
     if decorator then
         local ok, takes = pcall(decorator.applies, { name = "Hogger" })
@@ -132,8 +140,13 @@ else
         local tip = { lines = {} }
         function tip:AddLine(text) self.lines[#self.lines + 1] = text end
         ok = pcall(decorator.tooltip, { npcID = 1234 }, nil, tip)
-        Check(ok and #tip.lines == 4 and tip.lines[3]:find("Spell 100", 1, true) ~= nil,
-            "its tooltip: a blank, the header and the two abilities")
+        Check(ok and #tip.lines == 5 and tip.lines[3]:find("Spell 100", 1, true) ~= nil
+            and tip.lines[5] == "Hold Ctrl for details", "its tooltip: a blank, the header, the two abilities, the hint")
+        held = true
+        tip.lines = {}
+        ok = pcall(decorator.tooltip, { npcID = 1234 }, nil, tip)
+        Check(ok and tip.lines[4] == "    Text of 100", "Ctrl held: each ability's text under it")
+        held = false
     end
 end
 os.exit(failed and 1 or 0)

@@ -15,6 +15,7 @@ read_globals = {
     "ClassicBestiary",
     -- WoW API
     "C_AddOns", "IsAddOnLoaded", "CreateFrame", "C_Spell", "GetSpellInfo", "GetSpellTexture",
+    "GetSpellDescription", "Spell", "C_Timer", "IsControlKeyDown", "IsShiftKeyDown", "IsAltKeyDown",
 }
 
 unused_args = false

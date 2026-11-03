@@ -17,6 +17,10 @@ local sformat = string.format
 local SpellName = C_Spell and C_Spell.GetSpellName
     or (GetSpellInfo and function(id) return (GetSpellInfo(id)) end)
 local SpellIcon = C_Spell and C_Spell.GetSpellTexture or GetSpellTexture
+local SpellText = C_Spell and C_Spell.GetSpellDescription or GetSpellDescription
+local SpellCached = C_Spell and C_Spell.IsSpellDataCached
+local SpellExists = C_Spell and C_Spell.DoesSpellExist
+local IsControlKeyDown, IsShiftKeyDown, IsAltKeyDown = IsControlKeyDown, IsShiftKeyDown, IsAltKeyDown
 local DEFAULT_LINES = 8
 
 function ns.Print(text)
@@ -50,15 +54,97 @@ local function Applies(row)
     return nextAbility() ~= nil
 end
 
+-- Classic Bestiary's own details key (its options): Ctrl unless the
+-- player chose Shift, Alt, always or never there.
+local KEY_DOWN = { ctrl = IsControlKeyDown, shift = IsShiftKeyDown, alt = IsAltKeyDown }
+local function BestiaryOption(name)
+    local saved = _G.ClassicBestiaryCfg
+    if type(saved) ~= "table" then return nil end
+    return saved[name]
+end
+local function DetailsKey()
+    local key = BestiaryOption("expansion")
+    if key == "always" or key == "never" or KEY_DOWN[key] then return key end
+    return "ctrl"
+end
+local function Detailed(key)
+    if key == "always" then return true end
+    local down = KEY_DOWN[key]
+    return down ~= nil and down() == true
+end
+
+-- A spell's name or text not loaded yet: asked for once, and the hovered
+-- row's tooltip drawn again when it arrives.
+local requested, redrawSoon = {}, false
+local function Redraw()
+    redrawSoon = false
+    if API.RedrawRowTooltip then API.RedrawRowTooltip() end
+end
+local function Request(spellID)
+    if requested[spellID] or not (Spell and SpellCached and SpellExists) then return end
+    if SpellCached(spellID) or not SpellExists(spellID) then return end
+    requested[spellID] = true
+    Spell:CreateFromSpellID(spellID):ContinueOnSpellLoad(function()
+        if redrawSoon then return end
+        redrawSoon = true
+        C_Timer.After(0.05, Redraw)
+    end)
+end
+
+local function Name(spellID)
+    local name = SpellName and SpellName(spellID)
+    if name and name ~= "" then return name end
+    Request(spellID)
+end
+local function Description(spellID)
+    local text = SpellText and SpellText(spellID)
+    if text and text ~= "" then return text end
+    Request(spellID)
+end
+local function Labeled(spellID, name)
+    local icon = SpellIcon and SpellIcon(spellID)
+    return icon and sformat("|T%s:14:14:0:0|t %s", icon, name) or name
+end
+
+-- Details: an ability's own text, then the spells it sets off, each with
+-- theirs; one of the same name lends its text when the ability has none.
+local function AddDetails(tooltip, CB, spellID, name, listed)
+    local text = Description(spellID)
+    local related = CB.GetRelationships and CB.GetRelationships(spellID)
+    local others = {}
+    for _, link in ipairs(type(related) == "table" and related or {}) do
+        local childID = type(link) == "table" and link.s
+        local childName = childID and not listed[childID] and Name(childID)
+        if childName == name then
+            text = text or Description(childID)
+        elseif childName then
+            others[#others + 1] = childID
+            listed[childID] = true
+        end
+    end
+    if text then tooltip:AddLine("    " .. text, 1, 0.82, 0, true) end
+    for _, childID in ipairs(others) do
+        tooltip:AddLine("    " .. Labeled(childID, Name(childID)), 0.9, 0.9, 0.9)
+        local childText = Description(childID)
+        if childText then tooltip:AddLine("        " .. childText, 0.8, 0.8, 0.8, true) end
+    end
+end
+
 local function Tooltip(row, _, tooltip)
     local id = NpcOf(row)
     local CB = Bestiary()
     if not (id and CB and CB.IterateAbilities) then return end
-    local max = MaxLines()
+    local key = DetailsKey()
+    local detailed = Detailed(key)
+    local max = detailed and 0 or MaxLines()
+    local abilities = {}
+    for spellID in CB.IterateAbilities(id) do abilities[#abilities + 1] = spellID end
+    local listed = {}
+    for _, spellID in ipairs(abilities) do listed[spellID] = true end
     local shown, more = 0, 0
-    for spellID in CB.IterateAbilities(id) do
-        local name = SpellName and SpellName(spellID)
-        if name and name ~= "" then
+    for _, spellID in ipairs(abilities) do
+        local name = Name(spellID)
+        if name then
             if max > 0 and shown >= max then
                 more = more + 1
             else
@@ -66,13 +152,16 @@ local function Tooltip(row, _, tooltip)
                     tooltip:AddLine(" ")
                     tooltip:AddLine(L["TT_HEADER"], 1, 0.82, 0)
                 end
-                local icon = SpellIcon and SpellIcon(spellID)
-                tooltip:AddLine(icon and sformat("|T%s:14:14:0:0|t %s", icon, name) or name, 1, 1, 1)
+                tooltip:AddLine(Labeled(spellID, name), 1, 1, 1)
+                if detailed then AddDetails(tooltip, CB, spellID, name, listed) end
                 shown = shown + 1
             end
         end
     end
     if more > 0 then tooltip:AddLine(sformat(L["TT_MORE_FMT"], more), 0.6, 0.6, 0.6) end
+    if shown > 0 and not detailed and KEY_DOWN[key] and BestiaryOption("reminder") ~= false then
+        tooltip:AddLine(sformat(L["TT_DETAILS_HINT_FMT"], L["KEY_" .. key:upper()]), 0.5, 0.5, 0.5)
+    end
 end
 ns.Applies, ns.Tooltip = Applies, Tooltip
 
@@ -114,6 +203,8 @@ events:SetScript("OnEvent", function(self)
         ns.Print(L["NOT_READY_EASYFIND"])
         return
     end
-    API.RegisterRowDecorator({ id = KEY, label = L["EXT_NAME"], applies = Applies, tooltip = Tooltip })
+    -- modifiers: drawn again as the details key goes down or up (API 1.8).
+    API.RegisterRowDecorator({ id = KEY, label = L["EXT_NAME"], applies = Applies, tooltip = Tooltip,
+        modifiers = true })
     ns.ready = true
 end)
