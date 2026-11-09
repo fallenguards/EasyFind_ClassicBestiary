@@ -7,7 +7,7 @@ See what a creature casts before you fight it. Hover a creature in EasyFind's se
 - EasyFind
 - Classic Bestiary
 
-Classic Era and WoW Forever. Needs EasyFind 4.2.0 or newer.
+Classic Era and WoW Forever. Needs EasyFind 5.3.0 or newer, which carries the creature rows the abilities sit on.
 
 ## What it does
 
